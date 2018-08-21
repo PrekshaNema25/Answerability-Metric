@@ -1,36 +1,60 @@
-__author__ = 'tylin'
 from tokenizer.ptbtokenizer import PTBTokenizer
 from bleu.bleu import Bleu
-#from bleu.bleu import cBleu
-from meteor.meteor import Meteor
 from rouge.rouge import Rouge
-#from cider.cider import Cider
 import json
 import sys
 import os
 import codecs
 import numpy as np
 reload(sys)
+import argparse
 import pickle
 import scipy.stats as s
 sys.setdefaultencoding("utf-8")
 
-stop_words = ["did", "have", "ourselves", "hers", "between", "yourself", "but", "again", "there", "about", "once", "during", "out", "very", "having", "with", "they", "own", "an", "be", "some", "for", "do", "its", "yours", "such", "into", "of", "most", "itself", "other", "off", "is", "s", "am", "or", "as", "from", "him", "each", "the", "themselves", "until", "below", "are", "we", "these", "your", "his", "through", "don", "nor", "me", "were", "her", "more", "himself", "this", "down", "should", "our", "their", "while", "above", "both", "up", "to", "ours", "had", "she", "all", "no", "at", "any", "before", "them", "same", "and", "been", "have", "in", "will", "on", "does", "yourselves", "then", "that", "because", "over", "so", "can", "not", "now", "under", "he", "you", "herself", "has", "just",  "too", "only", "myself",  "those", "i", "after", "few", "t", "being", "if", "theirs", "my", "against", "a", "by", "doing", "it", "further", "was", "here", "than"]
- 
+parser = argparse.ArgumentParser(description='Get the arguments')
+parser.add_argument('--data_type', dest='data_type', type=string)
+parser.add_argument('--ref_file', dest='ref_file', type=string)
+parser.add_argument('--hyp_file', dest='hyp_file',type=string)
+parser.add_argument('--alpha',dest='alpha',type=float)
+parser.add_argument('--beta', dest='beta', type=float)
+parser.add_argument('--gamma', dest='gamma', type=float)
+parser.add_argument('--delta',dest='delta', type=float)
+parser.add_argpument('--output_file', dest='output_file', type=string)
+parser.add_argument('--ngram_metric', dest='ngram_metric', type=string)
+
+args = parser.parse_args()
+
+stop_words = ["did", "have", "ourselves", "hers", "between", "yourself", 
+              "but", "again", "there", "about", "once", "during", "out", "very", 
+              "having", "with", "they", "own", "an", "be", "some", "for", "do", "its", 
+              "yours", "such", "into", "of", "most", "itself", "other", "off", "is", "s", 
+              "am", "or", "as", "from", "him", "each", "the", "themselves", "until", "below",
+              "are", "we", "these", "your", "his", "through", "don", "nor", "me", "were", 
+              "her", "more", "himself", "this", "down", "should", "our", "their", "while", 
+              "above", "both", "up", "to", "ours", "had", "she", "all", "no", "at", "any", 
+              "before", "them", "same", "and", "been", "have", "in", "will", "on", "does", 
+              "yourselves", "then", "that", "because", "over", "so", "can", "not", "now", "under", 
+              "he", "you", "herself", "has", "just",  "too", "only", "myself",  "those", "i", "after", 
+              "few", "t", "being", "if", "theirs", "my", "against", "a", "by", "doing", "it", "further", 
+              "was", "here", "than"]
+
+question_words_global = ['what','which','who','whom','whose','where','when','how','what','Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How']
 def remove_stopwords_and_NER_line(question, relevant_words=None, question_words = None):
 
     if relevant_words == None:
 
         question = question.split()
-        stop_words = ["did", "have", "ourselves", "hers", "between", "yourself", "but", "again", "there", "about", "once", "during", "out", "very", "having", "with", "they", "own", "an", "be", "some", "for", "do", "its", "yours", "such", "into", "of", "most", "itself", "other", "off", "is", "s", "am", "or", "as", "from", "him", "each", "the", "themselves", "until", "below", "are", "we", "these", "your", "his", "through", "don", "nor", "me", "were", "her", "more", "himself", "this", "down", "should", "our", "their", "while", "above", "both", "up", "to", "ours", "had", "she", "all", "no", "at", "any", "before", "them", "same", "and", "been", "have", "in", "will", "on", "does", "yourselves", "then", "that", "because", "over", "so", "can", "not", "now", "under", "he", "you", "herself", "has", "just",  "too", "only", "myself",  "those", "i", "after", "few", "t", "being", "if", "theirs", "my", "against", "a", "by", "doing", "it", "further", "was", "here", "than"]
         if question_words == None:
-            question_words = ['what','which','who','whom','whose','where','when','how','what','Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How']
+           question_words = question_words_global
 
         temp_words = []
         for word in question_words:
             for i, w in enumerate(question):
                 if w == word:
                     temp_words.append(w)
+                    # If the question type is 'what' or 'which' the following word is generally associated with
+                    # with the answer type. Thus it is important that it is considered a part of the question.
                     if i+1 < len(question) and (w.lower() == "what" or w.lower() == "which"):
                         temp_words.append(question[i+1])
 
@@ -51,13 +75,10 @@ def remove_stopwords_and_NER_line(question, relevant_words=None, question_words 
             for j in relevant_words:
                 if j.lower() in i:
                     temp_words.append(i)
-
-        #print (" ".join(temp_words))
         return " ".join(temp_words)
 
 def NER_line(question):
-    print question
-    q_types = ['what','which','who','whom','whose','where','when','how','what','Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How']
+    q_types = question_words_global
     question_words = question.split()
     if question_words[0].lower() in q_types:
         question_words = question_words[1:]
@@ -82,10 +103,9 @@ def get_stopwords(question):
 def questiontype(question, questiontypes=None):
 
     if questiontypes == None:
-        types = ['what', 'which', 'why', 'who', 'whom', 'whose', 'where', 'when', 'how', 'what', 'Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How']
+        types = question_words_global
         question = question.strip()
         temp_words = []
-        # Remove the word appearing after what or which
         question = question.split()
 
         for word in types:
@@ -102,36 +122,17 @@ def questiontype(question, questiontypes=None):
                 return i
             else:
                 return " "
-
-def get_components(hypotheis, reference):
-
-    qt_h, sw_h, ner_h, rel_h = questiontype(hypotheis), get_stopwords(hypotheis), NER_line(hypotheis), remove_stopwords_and_NER_line(hypotheis)
-    qt_r, sw_r, ner_r, rel_r = questiontype(reference), get_stopwords(reference), NER_line(reference), remove_stopwords_and_NER_line(reference)
-
-    precision = []
-    recall = []
-
-    qt_in = [i for i in qt_h if i in qt_r]
-    sw_in = [i for i in sw_h if i in sw_r]
-    ner_in = [i for i in ner_h if i in ner_r]
-    rel_in = [i for i in rel_h if i in rel_r]
-
     
-def _get_json_format_qbleu(o, name, relevant_words=None, questiontypes=None, num_points = 300):
-     #p_file = codecs.open(o, "r", encoding="utf-8", errors="ignore")
+def _get_json_format_qbleu(o, relevant_words=None, questiontypes=None):
      p_file = open(o, "r")
+     name = o + '_components'
      pred_sents_impwords = []
      pred_sents_qt = []
      pred_sents_ner = []
      pred_sents = []
      pred_sents_sw = []
-     count = 1
      p_file = p_file.readlines()
-     print (len(p_file))
      for line in p_file:
-        if count >  num_points:
-            break
-        count += 1
         line_impwords = remove_stopwords_and_NER_line(line, relevant_words)
         line_ner = NER_line(line)
         line_sw = get_stopwords(line)
@@ -141,8 +142,6 @@ def _get_json_format_qbleu(o, name, relevant_words=None, questiontypes=None, num
         pred_sents_ner.append(line_ner)
         pred_sents_qt.append(line_qt)
         pred_sents_sw.append(line_sw)
-
-        #print (line_impwords, line_ner, line_sw, line_qt)
 
      ref_files = [os.path.join(name + "_impwords"), os.path.join(name + "_ner"), os.path.join(name + "_qt"), os.path.join(name + "_fluent"), os.path.join(name + "_sw")]
 
@@ -189,11 +188,9 @@ def _get_json_format_qbleu(o, name, relevant_words=None, questiontypes=None, num
 
 
 def loadJsonToMap(json_file):
-    data = json.load(codecs.open(json_file, "r", encoding="utf-8", errors="ignore"))
-    #data = json.load(open(json_file, "r"))
+    data = json.load(codecs.open(json_file, "r", encoding="utf-8", errors="ignore")
     imgToAnns = {}
     for entry in data:
-    #print entry['image_id'],entry['caption']
         if entry['image_id'] not in imgToAnns.keys():
                 imgToAnns[entry['image_id']] = []
         summary = {}
@@ -235,10 +232,7 @@ class COCOEvalCap:
         print 'setting up scorers...'
         scorers = [
             (Bleu(4), ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]),
-            #(cBleu(4), ["cBleu_1", "cBleu_2", "cBleu_3", "cBleu_4"]),
-            #(Meteor(),"METEOR"),
             (Rouge(), "ROUGE_L")
-            #(Cider(), "CIDEr")
         ]
 
         # =================================================
@@ -258,8 +252,8 @@ class COCOEvalCap:
                 self.setImgToEvalImgs(scores, imgIds, method)
                 print "%s: %0.3f"%(method, score)
         self.setEvalImgs()
-
         return self.evalImgs
+   
     def setEval(self, score, method):
         self.eval[method] = score
 
@@ -292,82 +286,30 @@ def new_eval_metric(final_eval_perline_impwords, final_eval_perline_ner, final_e
 
     return new_eval_per_line, np.mean(new_eval_per_line)
     
-
-def new_eval_metric_grid(final_eval_perline_impwords, final_eval_perline_ner, final_eval_perline_qt, fluent_eval_perline, final_eval_perline_sw, ref_scores):
-
-    print (final_eval_perline_impwords)
-    print(final_eval_perline_ner)
-    print(final_eval_perline_qt)
-    print(fluent_eval_perline)
-    w_re = np.arange(0.01,1, 0.05)
-    w_ner = np.arange(0.01,1,0.05)
-    w_qt = np.arange(0.01,1,0.05)
-    w_sw = np.arange(0.01,1,0.05)
-
-    d= np.arange(0.01,1,0.02)
-    fluent_scores = []
-    for i in fluent_eval_perline:
-        fluent_scores.append(i[sys.argv[7]])
-
-    new_scores = {}
-    loss = 0 
-    best_score = -1 * s.pearsonr(ref_scores, fluent_scores)[0]
-    ind = 0
-    for a in w_re:
-        #print a
-        for b in w_ner:
-            if ((a + b )> 1):
-                continue
-            for g in w_qt:
-                if ((a + b + g ) > 1):
-                    continue    
-                for t in d:
-                    new_eval_per_line = []
-                    for i in range(len(final_eval_perline_impwords)):
-                        answerability = a*final_eval_perline_impwords[i] + b*final_eval_perline_ner[i]  + \
-                                g*final_eval_perline_qt[i] + (1-a-b-g)*final_eval_perline_sw[i]
-                        new_eval_per_line.append(t*answerability + (1-t)*fluent_scores[i])
-
-                    #loss = np.mean((new_eval_per_line - ref_scores)* (new_eval_per_line - ref_scores))
-                    loss = -1*s.pearsonr(new_eval_per_line, ref_scores)[0]
-                        #print (loss)
-                    if loss < best_score:
-                        best_score = loss
-                        print ("Current best score is", best_score, a, b,g,t)
-                        new_scores = {"eval_list" : new_eval_per_line, "eval": np.mean(new_eval_per_line), "w_re": a, "w_ner": b, "w_qt":g,"d":d}
-
-                    else:
-                        continue
-
-    print ("Parameters", new_scores['w_re'], new_scores['w_ner'], new_scores['w_qt'],new_scores['d'])
-    pickle.dump(new_scores, open("best_alpha_beta_gamma.pkl", "w"))
-    return new_scores
     
 if __name__ == '__main__':
-    # impwords, ner, qt, fluent 
-    #relevant_words =  ['act', 'write', 'direct', 'describ', 'appear', 'star', 'genre', 'language', 'about','appear','cast']
-    #question_words = None
+    if args.data_type='wikimovies'
+        relevant_words =  ['act', 'write', 'direct', 'describ', 'appear', 'star', 'genre', 'language', 'about','appear','cast']
+        question_words = None
+    else:
+        relevant_words = None
+        question_words = None
 
-    relevant_words = None
-    question_words = None
-
-    #relevant_words = None
-    #question_words =  ["What color", "What is", "What kind", "What are", "What type", "What does", "What time", "What sport", "What animal", "What brand", "Is the", "Is there", "How many", "Are", "Does", "Where", "Why", "Which", "Do", "Who"]
-
-    filenames_1 = _get_json_format_qbleu(sys.argv[1], sys.argv[3], relevant_words, question_words, num_points=int(sys.argv[6]))
+    filenames_1 = _get_json_format_qbleu(args.ref_file, relevant_words, question_words)
     print ("reference_files written")
-    filenames_2 = _get_json_format_qbleu(sys.argv[2], sys.argv[4],relevant_words, question_words, num_points=int(sys.argv[6]))
+    filenames_2 = _get_json_format_qbleu(args.hyp_file, relevant_words, question_words)
     print ("predicted files written")
     ref_pred = zip(filenames_1, filenames_2)
 
     final_eval = []
     final_eval_f = []
 
-    true_sents = open(sys.argv[1])
+    true_sents = open(args.ref_file)
     true_sents = true_sents.readlines()
 
-    pred_sents = open(sys.argv[2])
+    pred_sents = open(args.hyp_file)
     pred_sents = pred_sents.readlines()
+ 
     for file_1, file_2 in ref_pred:
         coco = loadJsonToMap(file_1)
         cocoRes = loadJsonToMap(file_2)
@@ -385,69 +327,19 @@ if __name__ == '__main__':
                 temp_f.append(0)
                 continue
             temp_f.append( 2*(p['Bleu_1']*r['Bleu_1'])/(p['Bleu_1']+r['Bleu_1']))
-            #print ("Precision recall", p, r, temp_f[-1])
 
         final_eval_f.append(temp_f)
         final_eval.append(eval_per_line_p)
-
-        ref_scores = np.loadtxt(sys.argv[5])
-        ref_scores = ref_scores[:int(sys.argv[6])]
-        #ref_scores = [int(i.strip()) for i in ref_scores]
     fluent_scores = final_eval[3]
 
-    meteor_scores = np.loadtxt('../../squad_meteor')
-    nist_scores  = np.loadtxt('../../squad_nist')
-
-    all_scores = zip(true_sents, pred_sents, ref_scores, final_eval_f[0],final_eval_f[1],final_eval_f[2],final_eval[3],final_eval_f[4], [1]*1000, [1]*1000)#nist_scores, meteor_scores)
+                     
+    all_scores = zip(true_sents, pred_sents, final_eval_f[0],final_eval_f[1],final_eval_f[2],final_eval[3],final_eval_f[4], [1]*1000, [1]*1000)
 
     save_all = []
-    for t, p, r,imp,ner,qt,fl,sw,meteor,nist in all_scores:
+    for t, p, imp,ner,qt,fl,sw,meteor,nist in all_scores:
         print (t, p)
         print ("ner score {}, re_score {} qt score{}".format(ner, imp, qt))
         save_all.append({'true': t, 'pred':p,'ref':r,'imp':imp,'ner':ner,'qt':qt,'fl_1':fl['Bleu_1'],'fl_2':fl['Bleu_2'],'fl_3':fl['Bleu_3'],'fl_4':fl['Bleu_4'],'fl_rouge':fl['ROUGE_L'], \
                         'sw':sw, 'meteor':meteor,'nist':nist})
 
     pickle.dump(save_all, open('all_metrics_quora.pkl','w'))
-
-
-    #new_scores  = new_eval_metric_grid(final_eval_f[0], final_eval_f[1], final_eval_f[2], fluent_scores, final_eval_f[4], ref_scores)
-
-    """
-       filenames_1 = _get_json_format_qbleu(sys.argv[1], sys.argv[3], relevant_words, question_words, num_points=771)
-       #print ("reference_files written")
-       filenames_2 = _get_json_format_qbleu(sys.argv[2], sys.argv[4],relevant_words, question_words, num_points=771)
-       #print ("predicted files written")
-       ref_pred = zip(filenames_1, filenames_2)
-       final_eval = []
-       for file_1, file_2 in ref_pred:
-           coco = loadJsonToMap(file_1)
-           cocoRes = loadJsonToMap(file_2)
-           cocoEval_precision = COCOEvalCap(coco, cocoRes)
-           cocoEval_recall    = COCOEvalCap(cocoRes,coco)
-           cocoEval_precision.params['image_id'] = cocoRes.keys()
-           cocoEval_recall.params['image_id'] = cocoRes.keys()
-           eval_per_line_p = cocoEval_precision.evaluate()
-           eval_per_line_r = cocoEval_recall.evaluate()
-
-           f_score = zip(eval_per_line_p, eval_per_line_r)
-           temp_f = []
-           for i,j in f_score:
-                temp_f.append( p*r/(p+r))
-                
-            final_eval_f.append(temp_f)
-            final_eval.append(eval_per_line)
-
-       new_evals, total_eval = new_eval_metric(final_eval_f[0], final_eval_f[1], final_eval_f[2], fluent_scores, final_eval_f[4], new_scores)
-       pickle.dump([new_evals, total_eval], open(sys.argv[3] + ".pkl","w"))
-       np.savetxt(sys.argv[3] + "_scores", new_evals, delimiter="\n")
-       print total_eval
-
-def main():
-    s = "Wakanda is ruled by which king ?"
-    print ("Question", s)
-    print ("question type", questiontype(s))
-    print ("stop words", get_stopwords(s))
-    print("NER", NER_line(s))
-    print("Relevant words", remove_stopwords_and_NER_line(s))
-    
-    """
