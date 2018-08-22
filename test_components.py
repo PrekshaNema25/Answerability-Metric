@@ -13,15 +13,15 @@ import scipy.stats as s
 sys.setdefaultencoding("utf-8")
 
 parser = argparse.ArgumentParser(description='Get the arguments')
-parser.add_argument('--data_type', dest='data_type', type=string)
-parser.add_argument('--ref_file', dest='ref_file', type=string)
-parser.add_argument('--hyp_file', dest='hyp_file',type=string)
+parser.add_argument('--data_type', dest='data_type', type=str)
+parser.add_argument('--ref_file', dest='ref_file', type=str)
+parser.add_argument('--hyp_file', dest='hyp_file',type=str)
 parser.add_argument('--ner_weight',dest='ner_weight',type=float)
 parser.add_argument('--qt_weight', dest='qt_weight', type=float)
-parser.add_argument('--re_weight', dest='imp_weight', type=float)
+parser.add_argument('--re_weight', dest='re_weight', type=float)
 parser.add_argument('--delta',dest='delta', type=float)
-parser.add_argpument('--output_dir', dest='output_file', type=string)
-parser.add_argument('--ngram_metric', dest='ngram_metric', type=string)
+parser.add_argument('--output_dir', dest='output_dir', type=str)
+parser.add_argument('--ngram_metric', dest='ngram_metric', type=str)
 
 args = parser.parse_args()
 
@@ -39,7 +39,7 @@ stop_words = ["did", "have", "ourselves", "hers", "between", "yourself",
               "few", "t", "being", "if", "theirs", "my", "against", "a", "by", "doing", "it", "further", 
               "was", "here", "than"]
 
-question_words_global = ['what','which','who','whom','whose','where','when','how','what','Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How']
+question_words_global = ['what','which','who','whom','whose','where','when','how','What','Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How']
 def remove_stopwords_and_NER_line(question, relevant_words=None, question_words = None):
 
     if relevant_words == None:
@@ -188,7 +188,7 @@ def _get_json_format_qbleu(o, relevant_words=None, questiontypes=None):
 
 
 def loadJsonToMap(json_file):
-    data = json.load(codecs.open(json_file, "r", encoding="utf-8", errors="ignore")
+    data = json.load(codecs.open(json_file, "r", encoding="utf-8", errors="ignore"))
     imgToAnns = {}
     for entry in data:
         if entry['image_id'] not in imgToAnns.keys():
@@ -221,7 +221,6 @@ class COCOEvalCap:
         # =================================================
         # Set up scorers
         # =================================================
-        print 'tokenization...'
         tokenizer = PTBTokenizer()
         gts  = tokenizer.tokenize(gts)
         res = tokenizer.tokenize(res)
@@ -229,7 +228,6 @@ class COCOEvalCap:
         # =================================================
         # Set up scorers
         # =================================================
-        print 'setting up scorers...'
         scorers = [
             (Bleu(4), ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]),
             (Rouge(), "ROUGE_L")
@@ -240,17 +238,14 @@ class COCOEvalCap:
         # =================================================
         eval = {}
         for scorer, method in scorers:
-            print 'computing %s score...'%(scorer.method())
             score, scores = scorer.compute_score(gts, res)
             if type(method) == list:
                 for sc, scs, m in zip(score, scores, method):
                     self.setEval(sc, m)
                     self.setImgToEvalImgs(scs, imgIds, m)
-                    print "%s: %0.3f"%(m, sc)
             else:
                 self.setEval(score, method)
                 self.setImgToEvalImgs(scores, imgIds, method)
-                print "%s: %0.3f"%(method, score)
         self.setEvalImgs()
         return self.evalImgs
    
@@ -268,9 +263,8 @@ class COCOEvalCap:
         self.evalImgs = [eval for imgId, eval in self.imgToEval.items()]
 
                      
-def get_answerability_score(all_scores, ner_weight, qt_weight, re_weight, d, ngram_metric="Bleu_4"):
-	print(len(all_scores))
-	ref_scores = [x['ref'] for x in all_scores]
+def get_answerability_scores(all_scores, ner_weight, qt_weight, re_weight, d, ngram_metric="Bleu_4"):
+        print("Number of samples: ", len(all_scores))
 	fluent_scores = [x[ngram_metric] for x in all_scores]
 	imp_scores =  [x['imp'] for x in all_scores]
 	qt_scores = [x['qt'] for x in all_scores]
@@ -287,11 +281,10 @@ def get_answerability_score(all_scores, ner_weight, qt_weight, re_weight, d, ngr
 	    new_scores.append(temp)
 	    print ("New Score:{} Ner Score: {} RE Score {} SW Score {} QT Score {} ".format(temp, ner_scores[i], imp_scores[i], sw_scores[i], qt_scores[i]))
 
-	print ("Mean Answerability Score Across Questions: {} N-gram Score: {}".format(np.mean(fluent_scores), np.mean(new_scores)))
+	print ("Mean Answerability Score Across Questions: {} N-gram Score: {}".format(np.mean(new_scores), np.mean(fluent_scores)))
 	np.savetxt(os.path.join(args.output_dir , 'ngram_scores.txt'), fluent_scores)
 	np.savetxt(os.path.join(args.output_dir , 'answerability_scores.txt'),new_scores)
 
-  return
 
 def new_eval_metric(final_eval_perline_impwords, final_eval_perline_ner, final_eval_perline_qt, fluent_eval_perline, final_eval_perline_sw, new_scores):
 
@@ -314,7 +307,7 @@ def new_eval_metric(final_eval_perline_impwords, final_eval_perline_ner, final_e
     
     
 if __name__ == '__main__':
-    if args.data_type='wikimovies'
+    if args.data_type=='wikimovies':
         relevant_words =  ['act', 'write', 'direct', 'describ', 'appear', 'star', 'genre', 'language', 'about','appear','cast']
         question_words = None
     else:
@@ -363,9 +356,7 @@ if __name__ == '__main__':
 
     save_all = []
     for t, p, imp,ner,qt,fl,sw,meteor,nist in all_scores:
-        print (t, p)
-        print ("ner score {}, re_score {} qt score{}".format(ner, imp, qt))
-        save_all.append({'true': t, 'pred':p,'ref':r,'imp':imp,'ner':ner,'qt':qt,'fl_1':fl['Bleu_1'],'fl_2':fl['Bleu_2'],'fl_3':fl['Bleu_3'],'fl_4':fl['Bleu_4'],'fl_rouge':fl['ROUGE_L'], \
+        save_all.append({'true': t, 'pred':p,'imp':imp,'ner':ner,'qt':qt,'Bleu_1':fl['Bleu_1'],'Bleu_2':fl['Bleu_2'],'Bleu_3':fl['Bleu_3'],'Bleu_4':fl['Bleu_4'],'Rouge_L':fl['ROUGE_L'], \
                         'sw':sw, 'meteor':meteor,'nist':nist})
 
     get_answerability_scores(save_all, args.ner_weight, args.qt_weight, args.re_weight, args.delta ,args.ngram_metric)
