@@ -16,11 +16,11 @@ parser = argparse.ArgumentParser(description='Get the arguments')
 parser.add_argument('--data_type', dest='data_type', type=string)
 parser.add_argument('--ref_file', dest='ref_file', type=string)
 parser.add_argument('--hyp_file', dest='hyp_file',type=string)
-parser.add_argument('--alpha',dest='alpha',type=float)
-parser.add_argument('--beta', dest='beta', type=float)
-parser.add_argument('--gamma', dest='gamma', type=float)
+parser.add_argument('--ner_weight',dest='ner_weight',type=float)
+parser.add_argument('--qt_weight', dest='qt_weight', type=float)
+parser.add_argument('--re_weight', dest='imp_weight', type=float)
 parser.add_argument('--delta',dest='delta', type=float)
-parser.add_argpument('--output_file', dest='output_file', type=string)
+parser.add_argpument('--output_dir', dest='output_file', type=string)
 parser.add_argument('--ngram_metric', dest='ngram_metric', type=string)
 
 args = parser.parse_args()
@@ -267,6 +267,32 @@ class COCOEvalCap:
     def setEvalImgs(self):
         self.evalImgs = [eval for imgId, eval in self.imgToEval.items()]
 
+                     
+def get_answerability_score(all_scores, ner_weight, qt_weight, re_weight, d, ngram_metric="Bleu_4"):
+	print(len(all_scores))
+	ref_scores = [x['ref'] for x in all_scores]
+	fluent_scores = [x[ngram_metric] for x in all_scores]
+	imp_scores =  [x['imp'] for x in all_scores]
+	qt_scores = [x['qt'] for x in all_scores]
+	sw_scores = [x['sw'] for x in all_scores]
+	ner_scores =  [x['ner'] for x in all_scores]
+
+	new_scores = []
+
+	for i in range(len(imp_scores)):
+	    answerability = re_weight*imp_scores[i] + ner_weight*ner_scores[i]  + \
+		    qt_weight*qt_scores[i] + (1-re_weight - ner_weight - qt_weight)*sw_scores[i]
+
+	    temp = d*answerability + (1-d)*fluent_scores[i]
+	    new_scores.append(temp)
+	    print ("New Score:{} Ner Score: {} RE Score {} SW Score {} QT Score {} ".format(temp, ner_scores[i], imp_scores[i], sw_scores[i], qt_scores[i]))
+
+	print ("Mean Answerability Score Across Questions: {} N-gram Score: {}".format(np.mean(fluent_scores), np.mean(new_scores)))
+	np.savetxt(os.path.join(args.output_dir , 'ngram_scores.txt'), fluent_scores)
+	np.savetxt(os.path.join(args.output_dir , 'answerability_scores.txt'),new_scores)
+
+  return
+
 def new_eval_metric(final_eval_perline_impwords, final_eval_perline_ner, final_eval_perline_qt, fluent_eval_perline, final_eval_perline_sw, new_scores):
 
     new_eval_per_line = []
@@ -342,4 +368,4 @@ if __name__ == '__main__':
         save_all.append({'true': t, 'pred':p,'ref':r,'imp':imp,'ner':ner,'qt':qt,'fl_1':fl['Bleu_1'],'fl_2':fl['Bleu_2'],'fl_3':fl['Bleu_3'],'fl_4':fl['Bleu_4'],'fl_rouge':fl['ROUGE_L'], \
                         'sw':sw, 'meteor':meteor,'nist':nist})
 
-    pickle.dump(save_all, open('all_metrics_quora.pkl','w'))
+    get_answerability_scores(save_all, args.ner_weight, args.qt_weight, args.re_weight, args.delta ,args.ngram_metric)
