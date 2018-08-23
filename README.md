@@ -7,7 +7,7 @@ The script is a modified version of [coco-caption](https://github.com/tylin/coco
 ## Requirement
 * numpy
 * pickle
-* [NIST](ftp://jaguar.ncsl.nist.gov/mt/resources/mteval-v13.pl) (Optional)
+* [NIST](https://github.com/moses-smt/mosesdecoder/blob/master/scripts/generic/mteval-v13a.pl) (Optional)
 * [METEOR](http://www.cs.cmu.edu/~alavie/METEOR/) (Optional)
 
 ## Data Format
