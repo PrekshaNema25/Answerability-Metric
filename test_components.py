@@ -13,16 +13,16 @@ import scipy.stats as s
 sys.setdefaultencoding("utf-8")
 
 parser = argparse.ArgumentParser(description='Get the arguments')
-parser.add_argument('--data_type', dest='data_type', type=str)
-parser.add_argument('--ref_file', dest='ref_file', type=str)
-parser.add_argument('--hyp_file', dest='hyp_file',type=str)
-parser.add_argument('--ner_weight',dest='ner_weight',type=float)
-parser.add_argument('--qt_weight', dest='qt_weight', type=float)
-parser.add_argument('--re_weight', dest='re_weight', type=float)
-parser.add_argument('--delta',dest='delta', type=float)
-parser.add_argument('--output_dir', dest='output_dir', type=str)
-parser.add_argument('--ngram_metric', dest='ngram_metric', type=str)
-
+parser.add_argument('--data_type', dest='data_type', type=str, desc="Whether the data_type is [squad, wikimovies,vqa]. The relevant words in case of wikimovies is different.")
+parser.add_argument('--ref_file', dest='ref_file', type=str, desc="Path to the reference question files")
+parser.add_argument('--hyp_file', dest='hyp_file',type=str, desc="Path to the predicted question files")
+parser.add_argument('--ner_weight',dest='ner_weight',type=float, desc="Weight to be given to NEs")
+parser.add_argument('--qt_weight', dest='qt_weight', type=float, desc="Weight to be given to Question types")
+parser.add_argument('--re_weight', dest='re_weight', type=float, desc="Weight to be given to Relevant words")
+parser.add_argument('--delta',dest='delta', type=float, desc="Weight to be given to answerability scores")
+parser.add_argument('--output_dir', dest='output_dir', type=str, desc="Path to directory to store the scores per line, and auxilariy files")
+parser.add_argument('--ngram_metric', dest='ngram_metric', type=str, desc="N-gram metric that needs to be considered")
+parser.add_argument('--nist_meteor_scores_dir", dest="nist_meteor_scores_dir", type=str, desc="Nist and Meteor needs to computed through different tools, provide the path to the precomputed scores")
 args = parser.parse_args()
 
 stop_words = ["did", "have", "ourselves", "hers", "between", "yourself", 
@@ -351,11 +351,16 @@ if __name__ == '__main__':
         final_eval.append(eval_per_line_p)
     fluent_scores = final_eval[3]
 
-                     
-    all_scores = zip(true_sents, pred_sents, final_eval_f[0],final_eval_f[1],final_eval_f[2],final_eval[3],final_eval_f[4], [1]*1000, [1]*1000)
+    if (args.nist_meteor_scores_dir=""):
+		    nist_scores = [1]*len(pred_sents)
+		    meteor_scores = [1]*len(pred_sents)
+    else:
+		    nist_scores = np.loadtxt(os.path.join(args.nist_meteor_scores_dir, "nist_scores"))
+		    meteor_scores = np.loadtxt(os.path.join(args.nist_meteor_scores_dir, "meteor_scores"))		    
+    all_scores = zip(true_sents, pred_sents, final_eval_f[0],final_eval_f[1],final_eval_f[2],final_eval[3],final_eval_f[4], nist_scores, meteor_scores)
 
     save_all = []
-    for t, p, imp,ner,qt,fl,sw,meteor,nist in all_scores:
+    for t, p, imp,ner,qt,fl,sw, nist, meteor in all_scores:
         save_all.append({'true': t, 'pred':p,'imp':imp,'ner':ner,'qt':qt,'Bleu_1':fl['Bleu_1'],'Bleu_2':fl['Bleu_2'],'Bleu_3':fl['Bleu_3'],'Bleu_4':fl['Bleu_4'],'Rouge_L':fl['ROUGE_L'], \
                         'sw':sw, 'meteor':meteor,'nist':nist})
 
