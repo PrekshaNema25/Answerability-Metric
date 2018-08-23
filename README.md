@@ -2,13 +2,13 @@
 This repository contains the script to compute the questions based on the Answerability aspect. 
 
 ## Implementation
-The script is a modified version of coco-caption [https://github.com/tylin/coco-caption].
+The script is a modified version of [coco-caption] (https://github.com/tylin/coco-caption).
 
 ## Requirement
 * numpy
 * pickle
-* NIST [ftp://jaguar.ncsl.nist.gov/mt/resources/mteval-v13.pl] (Optional)
-* METEOR [http://www.cs.cmu.edu/~alavie/METEOR/] (Optional)
+* [NIST] (ftp://jaguar.ncsl.nist.gov/mt/resources/mteval-v13.pl) (Optional)
+* [METEOR] (http://www.cs.cmu.edu/~alavie/METEOR/) (Optional)
 
 ## Data Format
 * The reference file and the hypothesis file should contain one question per line.
@@ -18,4 +18,5 @@ The script is a modified version of coco-caption [https://github.com/tylin/coco-
 * mkdir auxilary_output
 * python answerability_score.py --data_type squad --ref_file references --hyp_file hypothesis --ner_weight 0.6 --qt_weight 0.2 --re_weight 0.1 --delta 0.7 --output_dir auxilary_output --ngram_metric Bleu_3
 * ngram_metric varies from [Bleu_1, Bleu_2, Bleu_3, Bleu_4, Rouge_L, nist, meteor]
+
 Note that the weights given to the stop_words is computed as (1 - ner_weight - qt_weight - re_weight) and the weight for the ngram metric is computed using (1 - delta)
