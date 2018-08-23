@@ -13,16 +13,16 @@ import scipy.stats as s
 sys.setdefaultencoding("utf-8")
 
 parser = argparse.ArgumentParser(description='Get the arguments')
-parser.add_argument('--data_type', dest='data_type', type=str, desc="Whether the data_type is [squad, wikimovies,vqa]. The relevant words in case of wikimovies is different.")
-parser.add_argument('--ref_file', dest='ref_file', type=str, desc="Path to the reference question files")
-parser.add_argument('--hyp_file', dest='hyp_file',type=str, desc="Path to the predicted question files")
-parser.add_argument('--ner_weight',dest='ner_weight',type=float, desc="Weight to be given to NEs")
-parser.add_argument('--qt_weight', dest='qt_weight', type=float, desc="Weight to be given to Question types")
-parser.add_argument('--re_weight', dest='re_weight', type=float, desc="Weight to be given to Relevant words")
-parser.add_argument('--delta',dest='delta', type=float, desc="Weight to be given to answerability scores")
-parser.add_argument('--output_dir', dest='output_dir', type=str, desc="Path to directory to store the scores per line, and auxilariy files")
-parser.add_argument('--ngram_metric', dest='ngram_metric', type=str, desc="N-gram metric that needs to be considered")
-parser.add_argument('--nist_meteor_scores_dir", dest="nist_meteor_scores_dir", type=str, default="", desc="Nist and Meteor needs to computed through different tools, provide the path to the precomputed scores")
+parser.add_argument('--data_type', dest='data_type', type=str, help="Whether the data_type is [squad, wikimovies,vqa]. The relevant words in case of wikimovies is different.")
+parser.add_argument('--ref_file', dest='ref_file', type=str, help="Path to the reference question files")
+parser.add_argument('--hyp_file', dest='hyp_file',type=str, help="Path to the predicted question files")
+parser.add_argument('--ner_weight',dest='ner_weight',type=float, help="Weight to be given to NEs")
+parser.add_argument('--qt_weight', dest='qt_weight', type=float, help="Weight to be given to Question types")
+parser.add_argument('--re_weight', dest='re_weight', type=float, help="Weight to be given to Relevant words")
+parser.add_argument('--delta',dest='delta', type=float, help="Weight to be given to answerability scores")
+parser.add_argument('--output_dir', dest='output_dir', type=str, help="Path to directory to store the scores per line, and auxilariy files")
+parser.add_argument('--ngram_metric', dest='ngram_metric', type=str, help="N-gram metric that needs to be considered")
+parser.add_argument('--nist_meteor_scores_dir', dest="nist_meteor_scores_dir", type=str, default="", help="Nist and Meteor needs to computed through different tools, provide the path to the precomputed scores")
 args = parser.parse_args()
 
 stop_words = ["did", "have", "ourselves", "hers", "between", "yourself", 
@@ -351,7 +351,7 @@ if __name__ == '__main__':
         final_eval.append(eval_per_line_p)
     fluent_scores = final_eval[3]
 
-    if (args.nist_meteor_scores_dir=""):
+    if (args.nist_meteor_scores_dir==""):
 		    nist_scores = [1]*len(pred_sents)
 		    meteor_scores = [1]*len(pred_sents)
     else:
