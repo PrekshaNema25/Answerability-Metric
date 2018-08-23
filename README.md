@@ -2,13 +2,13 @@
 This repository contains the script to compute the questions based on the Answerability aspect. 
 
 ## Implementation
-The script is a modified version of [coco-caption] (https://github.com/tylin/coco-caption).
+The script is a modified version of [coco-caption](https://github.com/tylin/coco-caption).
 
 ## Requirement
 * numpy
 * pickle
-* [NIST] (ftp://jaguar.ncsl.nist.gov/mt/resources/mteval-v13.pl) (Optional)
-* [METEOR] (http://www.cs.cmu.edu/~alavie/METEOR/) (Optional)
+* [NIST](ftp://jaguar.ncsl.nist.gov/mt/resources/mteval-v13.pl) (Optional)
+* [METEOR](http://www.cs.cmu.edu/~alavie/METEOR/) (Optional)
 
 ## Data Format
 * The reference file and the hypothesis file should contain one question per line.
