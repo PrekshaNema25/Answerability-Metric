@@ -1,5 +1,6 @@
 # Answerability-Metric
 This repository contains the script to compute the questions based on the Answerability aspect. 
+Towards a Better Metric for Evaluating Question Generation Systems - Preksha Nema and Mitesh Khapra ( EMNLP, 2018)
 
 ## Implementation
 The script is a modified version of [coco-caption](https://github.com/tylin/coco-caption).
