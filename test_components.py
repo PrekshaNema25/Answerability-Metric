@@ -22,7 +22,7 @@ parser.add_argument('--re_weight', dest='re_weight', type=float, desc="Weight to
 parser.add_argument('--delta',dest='delta', type=float, desc="Weight to be given to answerability scores")
 parser.add_argument('--output_dir', dest='output_dir', type=str, desc="Path to directory to store the scores per line, and auxilariy files")
 parser.add_argument('--ngram_metric', dest='ngram_metric', type=str, desc="N-gram metric that needs to be considered")
-parser.add_argument('--nist_meteor_scores_dir", dest="nist_meteor_scores_dir", type=str, desc="Nist and Meteor needs to computed through different tools, provide the path to the precomputed scores")
+parser.add_argument('--nist_meteor_scores_dir", dest="nist_meteor_scores_dir", type=str, default="", desc="Nist and Meteor needs to computed through different tools, provide the path to the precomputed scores")
 args = parser.parse_args()
 
 stop_words = ["did", "have", "ourselves", "hers", "between", "yourself", 
