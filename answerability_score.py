@@ -117,8 +117,11 @@ def questiontype(question, questiontypes=None):
                 return i
             else:
                 return " "
-    
+
+
 def _get_json_format_qbleu(lines, output_path_prefix, relevant_words=None, questiontypes=None):
+    if not os.path.exists(os.path.dirname(output_path_prefix)):
+        os.makedirs(os.path.dirname(output_path_prefix))
     name = output_path_prefix + '_components'
     pred_sents_impwords = []
     pred_sents_qt = []
@@ -267,6 +270,8 @@ def compute_answerability_scores(all_scores, ner_weight, qt_weight, re_weight, d
     _logger.info("Mean Answerability Score Across Questions: %.3f\nN-gram Score: %.3f",
                  mean_answerability_score, mean_fluent_score)
     if save_to_files:
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         np.savetxt(os.path.join(output_dir, 'ngram_scores.txt'), fluent_scores)
         np.savetxt(os.path.join(output_dir, 'answerability_scores.txt'), new_scores)
     return mean_answerability_score, mean_fluent_score
@@ -355,8 +360,6 @@ def get_answerability_scores(data_type,
             {'true': t, 'pred': p, 'imp': imp, 'ner': ner, 'qt': qt, 'Bleu_1': fl['Bleu_1'], 'Bleu_2': fl['Bleu_2'],
              'Bleu_3': fl['Bleu_3'], 'Bleu_4': fl['Bleu_4'], 'Rouge_L': fl['ROUGE_L'], \
              'sw': sw, 'meteor': meteor, 'nist': nist})
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
     return compute_answerability_scores(save_all, ner_weight, qt_weight, re_weight, delta, output_dir, ngram_metric,
                                         save_to_files=save_to_files)
 
