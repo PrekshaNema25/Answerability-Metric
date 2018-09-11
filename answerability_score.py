@@ -1,47 +1,41 @@
-from tokenizer.ptbtokenizer import PTBTokenizer
+import argparse
+import codecs
+import importlib
+import json
+import os
+import sys
+
+import numpy as np
+import six
+
 from bleu.bleu import Bleu
 from rouge.rouge import Rouge
-import json
-import sys
-import os
-import codecs
-import numpy as np
-reload(sys)
-import argparse
-import pickle
-import scipy.stats as s
-sys.setdefaultencoding("utf-8")
+from tokenizer.ptbtokenizer import PTBTokenizer
 
-parser = argparse.ArgumentParser(description='Get the arguments')
-parser.add_argument('--data_type', dest='data_type', type=str, help="Whether the data_type is [squad, wikimovies,vqa]. The relevant words in case of wikimovies is different.")
-parser.add_argument('--ref_file', dest='ref_file', type=str, help="Path to the reference question files")
-parser.add_argument('--hyp_file', dest='hyp_file',type=str, help="Path to the predicted question files")
-parser.add_argument('--ner_weight',dest='ner_weight',type=float, help="Weight to be given to NEs")
-parser.add_argument('--qt_weight', dest='qt_weight', type=float, help="Weight to be given to Question types")
-parser.add_argument('--re_weight', dest='re_weight', type=float, help="Weight to be given to Relevant words")
-parser.add_argument('--delta',dest='delta', type=float, help="Weight to be given to answerability scores")
-parser.add_argument('--output_dir', dest='output_dir', type=str, help="Path to directory to store the scores per line, and auxilariy files")
-parser.add_argument('--ngram_metric', dest='ngram_metric', type=str, help="N-gram metric that needs to be considered")
-parser.add_argument('--nist_meteor_scores_dir', dest="nist_meteor_scores_dir", type=str, default="", help="Nist and Meteor needs to computed through different tools, provide the path to the precomputed scores")
-args = parser.parse_args()
+importlib.reload(sys)
 
-stop_words = ["did", "have", "ourselves", "hers", "between", "yourself", 
-              "but", "again", "there", "about", "once", "during", "out", "very", 
-              "having", "with", "they", "own", "an", "be", "some", "for", "do", "its", 
-              "yours", "such", "into", "of", "most", "itself", "other", "off", "is", "s", 
+if six.PY2:
+    sys.setdefaultencoding("utf-8")
+
+stop_words = ["did", "have", "ourselves", "hers", "between", "yourself",
+              "but", "again", "there", "about", "once", "during", "out", "very",
+              "having", "with", "they", "own", "an", "be", "some", "for", "do", "its",
+              "yours", "such", "into", "of", "most", "itself", "other", "off", "is", "s",
               "am", "or", "as", "from", "him", "each", "the", "themselves", "until", "below",
-              "are", "we", "these", "your", "his", "through", "don", "nor", "me", "were", 
-              "her", "more", "himself", "this", "down", "should", "our", "their", "while", 
-              "above", "both", "up", "to", "ours", "had", "she", "all", "no", "at", "any", 
-              "before", "them", "same", "and", "been", "have", "in", "will", "on", "does", 
-              "yourselves", "then", "that", "because", "over", "so", "can", "not", "now", "under", 
-              "he", "you", "herself", "has", "just",  "too", "only", "myself",  "those", "i", "after", 
-              "few", "t", "being", "if", "theirs", "my", "against", "a", "by", "doing", "it", "further", 
+              "are", "we", "these", "your", "his", "through", "don", "nor", "me", "were",
+              "her", "more", "himself", "this", "down", "should", "our", "their", "while",
+              "above", "both", "up", "to", "ours", "had", "she", "all", "no", "at", "any",
+              "before", "them", "same", "and", "been", "have", "in", "will", "on", "does",
+              "yourselves", "then", "that", "because", "over", "so", "can", "not", "now", "under",
+              "he", "you", "herself", "has", "just", "too", "only", "myself", "those", "i", "after",
+              "few", "t", "being", "if", "theirs", "my", "against", "a", "by", "doing", "it", "further",
               "was", "here", "than"]
 
-question_words_global = ['what','which','who','whom','whose','where','when','how','What','Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How']
-def remove_stopwords_and_NER_line(question, relevant_words=None, question_words = None):
+question_words_global = ['what', 'which', 'who', 'whom', 'whose', 'where', 'when', 'how', 'What', 'Which', 'Why', 'Who',
+                         'Whom', 'Whose', 'Where', 'When', 'How']
 
+
+def remove_stopwords_and_NER_line(question, relevant_words=None, question_words=None):
     if relevant_words == None:
 
         question = question.split()
@@ -263,7 +257,7 @@ class COCOEvalCap:
         self.evalImgs = [eval for imgId, eval in self.imgToEval.items()]
 
                      
-def get_answerability_scores(all_scores, ner_weight, qt_weight, re_weight, d, ngram_metric="Bleu_4"):
+def get_answerability_scores(all_scores, ner_weight, qt_weight, re_weight, d, output_dir, ngram_metric="Bleu_4"):
         print("Number of samples: ", len(all_scores))
 	fluent_scores = [x[ngram_metric] for x in all_scores]
 	imp_scores =  [x['imp'] for x in all_scores]
@@ -282,8 +276,8 @@ def get_answerability_scores(all_scores, ner_weight, qt_weight, re_weight, d, ng
 	    print ("New Score:{} Ner Score: {} RE Score {} SW Score {} QT Score {} ".format(temp, ner_scores[i], imp_scores[i], sw_scores[i], qt_scores[i]))
 
 	print ("Mean Answerability Score Across Questions: {} N-gram Score: {}".format(np.mean(new_scores), np.mean(fluent_scores)))
-	np.savetxt(os.path.join(args.output_dir , 'ngram_scores.txt'), fluent_scores)
-	np.savetxt(os.path.join(args.output_dir , 'answerability_scores.txt'),new_scores)
+	np.savetxt(os.path.join(output_dir , 'ngram_scores.txt'), fluent_scores)
+	np.savetxt(os.path.join(output_dir , 'answerability_scores.txt'),new_scores)
 
 
 def new_eval_metric(final_eval_perline_impwords, final_eval_perline_ner, final_eval_perline_qt, fluent_eval_perline, final_eval_perline_sw, new_scores):
@@ -307,6 +301,25 @@ def new_eval_metric(final_eval_perline_impwords, final_eval_perline_ner, final_e
     
     
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Get the arguments')
+    parser.add_argument('--data_type', dest='data_type', type=str,
+                        help="Whether the data_type is [squad, wikimovies,vqa]. The relevant words in case of wikimovies is different.")
+    parser.add_argument('--ref_file', dest='ref_file', type=str, help="Path to the reference question files")
+    parser.add_argument('--hyp_file', dest='hyp_file', type=str, help="Path to the predicted question files")
+    parser.add_argument('--ner_weight', dest='ner_weight', type=float, help="Weight to be given to NEs")
+    parser.add_argument('--qt_weight', dest='qt_weight', type=float, help="Weight to be given to Question types")
+    parser.add_argument('--re_weight', dest='re_weight', type=float, help="Weight to be given to Relevant words")
+    parser.add_argument('--delta', dest='delta', type=float, help="Weight to be given to answerability scores")
+    parser.add_argument('--output_dir', dest='output_dir', type=str,
+                        help="Path to directory to store the scores per line, and auxilariy files")
+    parser.add_argument('--ngram_metric', dest='ngram_metric', type=str,
+                        help="N-gram metric that needs to be considered")
+    parser.add_argument('--nist_meteor_scores_dir', dest="nist_meteor_scores_dir", type=str, default="",
+                        help="Nist and Meteor needs to computed through different tools, provide the path to the precomputed scores")
+    args = parser.parse_args()
+
+    output_dir = args.output_dir
+
     if args.data_type=='wikimovies':
         relevant_words =  ['act', 'write', 'direct', 'describ', 'appear', 'star', 'genre', 'language', 'about','appear','cast']
         question_words = None
@@ -352,11 +365,11 @@ if __name__ == '__main__':
     fluent_scores = final_eval[3]
 
     if (args.nist_meteor_scores_dir==""):
-		    nist_scores = [1]*len(pred_sents)
-		    meteor_scores = [1]*len(pred_sents)
+        nist_scores = [1]*len(pred_sents)
+        meteor_scores = [1]*len(pred_sents)
     else:
-		    nist_scores = np.loadtxt(os.path.join(args.nist_meteor_scores_dir, "nist_scores"))
-		    meteor_scores = np.loadtxt(os.path.join(args.nist_meteor_scores_dir, "meteor_scores"))		    
+        nist_scores = np.loadtxt(os.path.join(args.nist_meteor_scores_dir, "nist_scores"))
+        meteor_scores = np.loadtxt(os.path.join(args.nist_meteor_scores_dir, "meteor_scores"))
     all_scores = zip(true_sents, pred_sents, final_eval_f[0],final_eval_f[1],final_eval_f[2],final_eval[3],final_eval_f[4], nist_scores, meteor_scores)
 
     save_all = []
@@ -364,4 +377,6 @@ if __name__ == '__main__':
         save_all.append({'true': t, 'pred':p,'imp':imp,'ner':ner,'qt':qt,'Bleu_1':fl['Bleu_1'],'Bleu_2':fl['Bleu_2'],'Bleu_3':fl['Bleu_3'],'Bleu_4':fl['Bleu_4'],'Rouge_L':fl['ROUGE_L'], \
                         'sw':sw, 'meteor':meteor,'nist':nist})
 
-    get_answerability_scores(save_all, args.ner_weight, args.qt_weight, args.re_weight, args.delta ,args.ngram_metric)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    get_answerability_scores(save_all, args.ner_weight, args.qt_weight, args.re_weight, args.delta , output_dir, args.ngram_metric)
