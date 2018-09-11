@@ -1,20 +1,19 @@
 import argparse
 import codecs
-import importlib
 import json
 import os
 import sys
 
 import numpy as np
 import six
+from six.moves import reload_module
 
 from bleu.bleu import Bleu
 from rouge.rouge import Rouge
 from tokenizer.ptbtokenizer import PTBTokenizer
 
-importlib.reload(sys)
-
 if six.PY2:
+    reload_module(sys)
     sys.setdefaultencoding("utf-8")
 
 stop_words = ["did", "have", "ourselves", "hers", "between", "yourself",
@@ -36,10 +35,10 @@ question_words_global = ['what', 'which', 'who', 'whom', 'whose', 'where', 'when
 
 
 def remove_stopwords_and_NER_line(question, relevant_words=None, question_words=None):
-    if relevant_words == None:
+    if relevant_words is None:
 
         question = question.split()
-        if question_words == None:
+        if question_words is None:
            question_words = question_words_global
 
         temp_words = []
@@ -258,26 +257,26 @@ class COCOEvalCap:
 
                      
 def get_answerability_scores(all_scores, ner_weight, qt_weight, re_weight, d, output_dir, ngram_metric="Bleu_4"):
-        print("Number of samples: ", len(all_scores))
-	fluent_scores = [x[ngram_metric] for x in all_scores]
-	imp_scores =  [x['imp'] for x in all_scores]
-	qt_scores = [x['qt'] for x in all_scores]
-	sw_scores = [x['sw'] for x in all_scores]
-	ner_scores =  [x['ner'] for x in all_scores]
+    print("Number of samples: ", len(all_scores))
+    fluent_scores = [x[ngram_metric] for x in all_scores]
+    imp_scores =  [x['imp'] for x in all_scores]
+    qt_scores = [x['qt'] for x in all_scores]
+    sw_scores = [x['sw'] for x in all_scores]
+    ner_scores =  [x['ner'] for x in all_scores]
 
-	new_scores = []
+    new_scores = []
 
-	for i in range(len(imp_scores)):
-	    answerability = re_weight*imp_scores[i] + ner_weight*ner_scores[i]  + \
-		    qt_weight*qt_scores[i] + (1-re_weight - ner_weight - qt_weight)*sw_scores[i]
+    for i in range(len(imp_scores)):
+        answerability = re_weight*imp_scores[i] + ner_weight*ner_scores[i]  + \
+            qt_weight*qt_scores[i] + (1-re_weight - ner_weight - qt_weight)*sw_scores[i]
 
-	    temp = d*answerability + (1-d)*fluent_scores[i]
-	    new_scores.append(temp)
-	    print ("New Score:{} Ner Score: {} RE Score {} SW Score {} QT Score {} ".format(temp, ner_scores[i], imp_scores[i], sw_scores[i], qt_scores[i]))
+        temp = d*answerability + (1-d)*fluent_scores[i]
+        new_scores.append(temp)
+        print ("New Score:{} Ner Score: {} RE Score {} SW Score {} QT Score {} ".format(temp, ner_scores[i], imp_scores[i], sw_scores[i], qt_scores[i]))
 
-	print ("Mean Answerability Score Across Questions: {} N-gram Score: {}".format(np.mean(new_scores), np.mean(fluent_scores)))
-	np.savetxt(os.path.join(output_dir , 'ngram_scores.txt'), fluent_scores)
-	np.savetxt(os.path.join(output_dir , 'answerability_scores.txt'),new_scores)
+    print ("Mean Answerability Score Across Questions: {} N-gram Score: {}".format(np.mean(new_scores), np.mean(fluent_scores)))
+    np.savetxt(os.path.join(output_dir , 'ngram_scores.txt'), fluent_scores)
+    np.savetxt(os.path.join(output_dir , 'answerability_scores.txt'),new_scores)
 
 
 def new_eval_metric(final_eval_perline_impwords, final_eval_perline_ner, final_eval_perline_qt, fluent_eval_perline, final_eval_perline_sw, new_scores):
