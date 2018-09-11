@@ -1,3 +1,7 @@
+auxiliary_output/
+
+tokenizer/tmp*
+
 # Python
 build/
 __pycache__/
