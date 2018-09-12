@@ -32,7 +32,7 @@ stop_words = {"did", "have", "ourselves", "hers", "between", "yourself",
               "was", "here", "than"}
 
 question_words_global = {'What', 'Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How'}
-question_words_global.update(map(str.lower, question_words_global))
+question_words_global.update([w.lower() for w in  question_words_global])
 
 _logger = logging.getLogger('answerability')
 
