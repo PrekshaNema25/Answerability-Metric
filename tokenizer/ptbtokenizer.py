@@ -26,6 +26,7 @@ class PTBTokenizer:
     """Python wrapper of Stanford PTBTokenizer"""
 
     def tokenize(self, captions_for_image):
+        # TODO Try to optimize and keep the process running.
         cmd = ['java', '-cp', STANFORD_CORENLP_3_4_1_JAR,
                 'edu.stanford.nlp.process.PTBTokenizer',
                 '-preserveLines', '-lowerCase']
@@ -55,7 +56,7 @@ class PTBTokenizer:
         p_tokenizer = subprocess.Popen(cmd, cwd=path_to_jar_dirname,
                                        env=env,
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        token_lines, err = p_tokenizer.communicate(input=sentences.rstrip().encode('utf-8'))
+        token_lines, err = p_tokenizer.communicate()
         if err and _logger.isEnabledFor(logging.DEBUG):
             _logger.debug(err.decode('utf-8').rstrip())
         lines = token_lines.decode('utf-8').split('\n')
