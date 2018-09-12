@@ -8,6 +8,7 @@
 # Last Modified : Thu Mar 19 09:53:35 2015
 # Authors : Hao Fang <hfang@uw.edu> and Tsung-Yi Lin <tl483@cornell.edu>
 
+import logging
 import os
 import subprocess
 import tempfile
@@ -18,6 +19,8 @@ STANFORD_CORENLP_3_4_1_JAR = 'stanford-corenlp-3.4.1.jar'
 # punctuations to be removed from the sentences
 PUNCTUATIONS = ["''", "'", "``", "`", "-LRB-", "-RRB-", "-LCB-", "-RCB-", \
         ".", "?", "!", ",", ":", "-", "--", "...", ";"] 
+
+_logger = logging.getLogger('answerability')
 
 class PTBTokenizer:
     """Python wrapper of Stanford PTBTokenizer"""
@@ -51,8 +54,10 @@ class PTBTokenizer:
         env['LC_ALL'] = "C"
         p_tokenizer = subprocess.Popen(cmd, cwd=path_to_jar_dirname,
                                        env=env,
-                                       stdout=subprocess.PIPE)
-        token_lines = p_tokenizer.communicate(input=sentences.rstrip().encode('utf-8'))[0]
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        token_lines, err = p_tokenizer.communicate(input=sentences.rstrip().encode('utf-8'))
+        if err and _logger.isEnabledFor(logging.DEBUG):
+            _logger.debug(err.decode('utf-8').rstrip())
         lines = token_lines.decode('utf-8').split('\n')
         # remove temp file
         os.remove(tmp_file.name)
