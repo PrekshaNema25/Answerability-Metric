@@ -39,8 +39,11 @@ stop_words = ["did", "have", "ourselves", "hers", "between", "yourself",
               "few", "t", "being", "if", "theirs", "my", "against", "a", "by", "doing", "it", "further", 
               "was", "here", "than"]
 
-question_words_global = ['what','which','who','whom','whose','where','when','how','What','Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How']
-def remove_stopwords_and_NER_line(question, relevant_words=None, question_words = None):
+question_words_global = {'What', 'Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How'}
+question_words_global.update(map(str.lower, question_words_global))
+
+
+def remove_stopwords_and_NER_line(question, relevant_words=None, question_words=None):
 
     if relevant_words == None:
 
