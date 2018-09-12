@@ -126,16 +126,14 @@ def _get_json_format_qbleu(lines, output_path_prefix, relevant_words=None, quest
         os.makedirs(os.path.dirname(output_path_prefix))
     name = output_path_prefix + '_components'
     pred_sents_impwords = []
-    pred_sents_qt = []
     pred_sents_ner = []
-    pred_sents = []
+    pred_sents_qt = []
     pred_sents_sw = []
     for line in lines:
         line_impwords = remove_stopwords_and_NER_line(line, relevant_words)
         line_ner = NER_line(line)
-        line_sw = get_stopwords(line)
         line_qt = questiontype(line, questiontypes)
-        pred_sents.append(line)
+        line_sw = get_stopwords(line)
         pred_sents_impwords.append(line_impwords)
         pred_sents_ner.append(line_ner)
         pred_sents_qt.append(line_qt)
@@ -143,9 +141,9 @@ def _get_json_format_qbleu(lines, output_path_prefix, relevant_words=None, quest
 
     ref_files = [os.path.join(name + "_impwords"), os.path.join(name + "_ner"), os.path.join(name + "_qt"), os.path.join(name + "_fluent"), os.path.join(name + "_sw")]
 
-    data_pred_ner = []
-    data_pred_qt = []
     data_pred_impwords = []
+    data_pred_qt = []
+    data_pred_ner = []
     data_pred = []
     data_pred_sw = []
 
@@ -153,7 +151,7 @@ def _get_json_format_qbleu(lines, output_path_prefix, relevant_words=None, quest
         data_pred_impwords.append(dict(image_id=index, caption=s))
         data_pred_qt.append(dict(image_id=index, caption=pred_sents_qt[index]))
         data_pred_ner.append(dict(image_id=index, caption=pred_sents_ner[index]))
-        data_pred.append(dict(image_id=index, caption=pred_sents[index]))
+        data_pred.append(dict(image_id=index, caption=lines[index]))
         data_pred_sw.append(dict(image_id=index, caption=pred_sents_sw[index]))
 
     with open(ref_files[0], 'w') as f:
@@ -218,7 +216,6 @@ class COCOEvalCap:
         # =================================================
         # Compute scores
         # =================================================
-        eval = {}
         for scorer, method in scorers:
             score, scores = scorer.compute_score(gts, res)
             if type(method) == list:
@@ -355,9 +352,9 @@ def get_answerability_scores(hypotheses,
     else:
         metric_scores = [fl[ngram_metric] for fl in final_eval[3]]
     save_all = []
-    all_scores = zip(final_eval_f[0], final_eval_f[1], final_eval_f[2], final_eval[3], final_eval_f[4],
+    all_scores = zip(final_eval_f[0], final_eval_f[1], final_eval_f[2], final_eval_f[4],
                      metric_scores)
-    for imp, ner, qt, fl, sw, metric_score in all_scores:
+    for imp, ner, qt, sw, metric_score in all_scores:
         d = {'imp': imp, 'ner': ner, 'qt': qt, 'sw': sw, ngram_metric: metric_score}
         save_all.append(d)
     return compute_answerability_scores(save_all, ner_weight, qt_weight, re_weight, delta, output_dir, ngram_metric,

@@ -21,6 +21,6 @@ Run:
 ```bash
 python answerability_score.py --data_type squad --ref_file examples/references.txt --hyp_file examples/hypotheses.txt --ner_weight 0.6 --qt_weight 0.2 --re_weight 0.1 --delta 0.7 --output_dir auxiliary_output --ngram_metric Bleu_3
 ```
-* ngram_metric varies from [Bleu_1, Bleu_2, Bleu_3, Bleu_4, Rouge_L, nist, meteor]
+* ngram_metric varies from [Bleu_1, Bleu_2, Bleu_3, Bleu_4, ROUGE_L, NIST, METEOR]
 
 Note that the weights given to the stop_words is computed as (1 - ner_weight - qt_weight - re_weight) and the weight for the ngram metric is computed using (1 - delta)
