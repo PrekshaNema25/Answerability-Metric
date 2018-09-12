@@ -247,7 +247,7 @@ class COCOEvalCap:
                      
 def compute_answerability_scores(all_scores, ner_weight, qt_weight, re_weight, d, output_dir, ngram_metric="Bleu_4",
                                  save_to_files=False):
-    _logger.info("Number of samples: %s", len(all_scores))
+    _logger.debug("Number of samples: %s", len(all_scores))
     fluent_scores = [x[ngram_metric] for x in all_scores]
     imp_scores =  [x['imp'] for x in all_scores]
     qt_scores = [x['qt'] for x in all_scores]
@@ -297,17 +297,19 @@ def new_eval_metric(final_eval_perline_impwords, final_eval_perline_ner, final_e
     return new_eval_per_line, np.mean(new_eval_per_line)
 
 
-def get_answerability_scores(data_type,
-                             delta,
-                             hypothesis_lines,
+def get_answerability_scores(hypotheses,
                              ner_weight,
-                             ngram_metric,
-                             nist_meteor_scores_dir,
                              output_dir,
                              qt_weight,
                              re_weight,
-                             references_lines,
+                             references,
+                             ngram_metric='Blue_3',
+                             nist_meteor_scores_dir=None,
+                             delta=0.7,
+                             data_type='SQuAD',
                              save_to_files=False):
+    if data_type is not None:
+        data_type = data_type.lower()
     if data_type == 'wikimovies':
         relevant_words = ['act', 'write', 'direct', 'describ', 'appear', 'star', 'genre', 'language', 'about', 'appear',
                           'cast']
@@ -315,16 +317,14 @@ def get_answerability_scores(data_type,
     else:
         relevant_words = None
         question_words = None
-    filenames_1 = _get_json_format_qbleu(references_lines, os.path.join(output_dir, 'refs'),
+    filenames_1 = _get_json_format_qbleu(references, os.path.join(output_dir, 'refs'),
                                          relevant_words, question_words)
     _logger.debug("Reference files written.")
-    filenames_2 = _get_json_format_qbleu(hypothesis_lines, os.path.join(output_dir, 'hyps'),
+    filenames_2 = _get_json_format_qbleu(hypotheses, os.path.join(output_dir, 'hyps'),
                                          relevant_words, question_words)
     _logger.debug("Predicted files written.")
     final_eval = []
     final_eval_f = []
-    true_sents = references_lines
-    pred_sents = hypothesis_lines
     for file_1, file_2 in zip(filenames_1, filenames_2):
         coco = loadJsonToMap(file_1)
         cocoRes = loadJsonToMap(file_2)
@@ -345,21 +345,21 @@ def get_answerability_scores(data_type,
 
         final_eval_f.append(temp_f)
         final_eval.append(eval_per_line_p)
-    fluent_scores = final_eval[3]
-    if (nist_meteor_scores_dir == ""):
-        nist_scores = [1] * len(pred_sents)
-        meteor_scores = [1] * len(pred_sents)
+
+    if ngram_metric == 'NIST':
+        assert nist_meteor_scores_dir is not None
+        metric_scores = np.loadtxt(os.path.join(nist_meteor_scores_dir, "nist_scores"))
+    elif ngram_metric == 'METEOR':
+        assert nist_meteor_scores_dir is not None
+        metric_scores = np.loadtxt(os.path.join(nist_meteor_scores_dir, "meteor_scores"))
     else:
-        nist_scores = np.loadtxt(os.path.join(nist_meteor_scores_dir, "nist_scores"))
-        meteor_scores = np.loadtxt(os.path.join(nist_meteor_scores_dir, "meteor_scores"))
-    all_scores = zip(true_sents, pred_sents, final_eval_f[0], final_eval_f[1], final_eval_f[2], final_eval[3],
-                     final_eval_f[4], nist_scores, meteor_scores)
+        metric_scores = [fl[ngram_metric] for fl in final_eval[3]]
     save_all = []
-    for t, p, imp, ner, qt, fl, sw, nist, meteor in all_scores:
-        save_all.append(
-            {'true': t, 'pred': p, 'imp': imp, 'ner': ner, 'qt': qt, 'Bleu_1': fl['Bleu_1'], 'Bleu_2': fl['Bleu_2'],
-             'Bleu_3': fl['Bleu_3'], 'Bleu_4': fl['Bleu_4'], 'Rouge_L': fl['ROUGE_L'],
-             'sw': sw, 'meteor': meteor, 'nist': nist})
+    all_scores = zip(final_eval_f[0], final_eval_f[1], final_eval_f[2], final_eval[3], final_eval_f[4],
+                     metric_scores)
+    for imp, ner, qt, fl, sw, metric_score in all_scores:
+        d = {'imp': imp, 'ner': ner, 'qt': qt, 'sw': sw, ngram_metric: metric_score}
+        save_all.append(d)
     return compute_answerability_scores(save_all, ner_weight, qt_weight, re_weight, delta, output_dir, ngram_metric,
                                         save_to_files=save_to_files)
 
@@ -373,12 +373,14 @@ def main():
     parser.add_argument('--ner_weight', dest='ner_weight', type=float, help="Weight to be given to NEs")
     parser.add_argument('--qt_weight', dest='qt_weight', type=float, help="Weight to be given to Question types")
     parser.add_argument('--re_weight', dest='re_weight', type=float, help="Weight to be given to Relevant words")
-    parser.add_argument('--delta', dest='delta', type=float, help="Weight to be given to answerability scores")
+    parser.add_argument('--delta', dest='delta', type=float,
+                        default=0.7,
+                        help="Weight to be given to answerability scores")
     parser.add_argument('--output_dir', dest='output_dir', type=str,
                         help="Path to directory to store the scores per line, and auxilariy files")
     parser.add_argument('--ngram_metric', dest='ngram_metric', type=str,
                         help="N-gram metric that needs to be considered")
-    parser.add_argument('--nist_meteor_scores_dir', dest="nist_meteor_scores_dir", type=str, default="",
+    parser.add_argument('--nist_meteor_scores_dir', dest="nist_meteor_scores_dir", type=str,
                         help="Nist and Meteor needs to computed through different tools, provide the path to the precomputed scores")
     args = parser.parse_args()
 
@@ -390,16 +392,16 @@ def main():
     with open(args.ref_file, 'r') as f:
         references_lines = f.readlines()
 
-    get_answerability_scores(args.data_type,
-                             args.delta,
-                             hypothesis_lines,
-                             args.ner_weight,
-                             args.ngram_metric,
-                             args.nist_meteor_scores_dir,
-                             args.output_dir,
-                             args.qt_weight,
-                             args.re_weight,
-                             references_lines,
+    get_answerability_scores(delta=args.delta,
+                             hypotheses=hypothesis_lines,
+                             ner_weight=args.ner_weight,
+                             ngram_metric=args.ngram_metric,
+                             nist_meteor_scores_dir=args.nist_meteor_scores_dir,
+                             output_dir=args.output_dir,
+                             qt_weight=args.qt_weight,
+                             re_weight=args.re_weight,
+                             references=references_lines,
+                             data_type=args.data_type,
                              save_to_files=True)
 
 

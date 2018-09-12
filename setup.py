@@ -12,4 +12,7 @@ if __name__ == '__main__':
               'scipy',
               'six',
           ],
+          tests_require=[
+              'pytest',
+          ],
           )
