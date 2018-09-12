@@ -15,7 +15,7 @@ from tokenizer.ptbtokenizer import PTBTokenizer
 
 if six.PY2:
     reload_module(sys)
-    sys.setdefaultencoding("utf-8")
+    sys.setdefaultencoding('utf-8')
 
 stop_words = {"did", "have", "ourselves", "hers", "between", "yourself",
               "but", "again", "there", "about", "once", "during", "out", "very",
@@ -31,8 +31,8 @@ stop_words = {"did", "have", "ourselves", "hers", "between", "yourself",
               "few", "t", "being", "if", "theirs", "my", "against", "a", "by", "doing", "it", "further",
               "was", "here", "than"}
 
-question_words_global = {'what', 'which', 'why', 'who', 'whom', 'whose', 'where', 'when', 'how',
-                         'What', 'Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How'}
+question_words_global = {'What', 'Which', 'Why', 'Who', 'Whom', 'Whose', 'Where', 'When', 'How'}
+question_words_global.update(map(str.lower, question_words_global))
 
 _logger = logging.getLogger('answerability')
 
@@ -95,9 +95,10 @@ def get_stopwords(question):
 
     return " ".join(temp_words)
 
+
 def questiontype(question, questiontypes=None):
 
-    if questiontypes == None:
+    if questiontypes is None:
         types = question_words_global
         question = question.strip()
         temp_words = []
@@ -147,13 +148,12 @@ def _get_json_format_qbleu(lines, output_path_prefix, relevant_words=None, quest
     data_pred = []
     data_pred_sw = []
 
-
-    for id, s in enumerate(pred_sents_impwords):
-        data_pred_impwords.append(dict(image_id=id, caption=s))
-        data_pred_qt.append(dict(image_id=id, caption=pred_sents_qt[id]))
-        data_pred_ner.append(dict(image_id=id, caption=pred_sents_ner[id]))
-        data_pred.append(dict(image_id=id, caption=pred_sents[id]))
-        data_pred_sw.append(dict(image_id=id, caption=pred_sents_sw[id]))
+    for index, s in enumerate(pred_sents_impwords):
+        data_pred_impwords.append(dict(image_id=index, caption=s))
+        data_pred_qt.append(dict(image_id=index, caption=pred_sents_qt[index]))
+        data_pred_ner.append(dict(image_id=index, caption=pred_sents_ner[index]))
+        data_pred.append(dict(image_id=index, caption=pred_sents[index]))
+        data_pred_sw.append(dict(image_id=index, caption=pred_sents_sw[index]))
 
     with open(ref_files[0], 'w') as f:
         json.dump(data_pred_impwords, f, separators=(',', ':'))
@@ -189,7 +189,6 @@ class COCOEvalCap:
         self.coco = coco
         self.cocoRes = cocoRes
         self.params = {'image_id': coco.keys()}
-
 
     def evaluate(self):
         imgIds = self.params['image_id']
@@ -236,7 +235,7 @@ class COCOEvalCap:
 
     def setImgToEvalImgs(self, scores, imgIds, method):
         for imgId, score in zip(imgIds, scores):
-            if not imgId in self.imgToEval:
+            if imgId not in self.imgToEval:
                 self.imgToEval[imgId] = {}
                 self.imgToEval[imgId]["image_id"] = imgId
             self.imgToEval[imgId][method] = score
@@ -358,13 +357,13 @@ def get_answerability_scores(data_type,
     for t, p, imp, ner, qt, fl, sw, nist, meteor in all_scores:
         save_all.append(
             {'true': t, 'pred': p, 'imp': imp, 'ner': ner, 'qt': qt, 'Bleu_1': fl['Bleu_1'], 'Bleu_2': fl['Bleu_2'],
-             'Bleu_3': fl['Bleu_3'], 'Bleu_4': fl['Bleu_4'], 'Rouge_L': fl['ROUGE_L'], \
+             'Bleu_3': fl['Bleu_3'], 'Bleu_4': fl['Bleu_4'], 'Rouge_L': fl['ROUGE_L'],
              'sw': sw, 'meteor': meteor, 'nist': nist})
     return compute_answerability_scores(save_all, ner_weight, qt_weight, re_weight, delta, output_dir, ngram_metric,
                                         save_to_files=save_to_files)
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description='Get the arguments')
     parser.add_argument('--data_type', dest='data_type', type=str,
                         help="Whether the data_type is [squad, wikimovies,vqa]. The relevant words in case of wikimovies is different.")
@@ -401,3 +400,7 @@ if __name__ == '__main__':
                              args.re_weight,
                              references_lines,
                              save_to_files=True)
+
+
+if __name__ == '__main__':
+    main()
