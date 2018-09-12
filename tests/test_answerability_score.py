@@ -16,7 +16,7 @@ def test_get_answerability_scores_Bleu_3():
                                                                            qt_weight=0.2,
                                                                            re_weight=0.1,
                                                                            output_dir=_output_dir)
-    assert_almost_equal(mean_answerability_score, 0.678, decimal=3)
+    assert_almost_equal(mean_answerability_score, 0.398, decimal=3)
     assert_almost_equal(mean_fluent_score, 0.511, decimal=3)
 
 
@@ -29,5 +29,5 @@ def test_get_answerability_scores_Rouge_L():
                                                                            qt_weight=0.2,
                                                                            re_weight=0.1,
                                                                            output_dir=_output_dir)
-    assert_almost_equal(mean_answerability_score, 0.765, decimal=3)
+    assert_almost_equal(mean_answerability_score, 0.485, decimal=3)
     assert_almost_equal(mean_fluent_score, 0.8, decimal=3)
