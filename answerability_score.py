@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+import tempfile
 
 import numpy as np
 import six
@@ -296,10 +297,10 @@ def new_eval_metric(final_eval_perline_impwords, final_eval_perline_ner, final_e
 
 def get_answerability_scores(hypotheses,
                              ner_weight,
-                             output_dir,
                              qt_weight,
                              re_weight,
                              references,
+                             output_dir=None,
                              ngram_metric='Blue_3',
                              nist_meteor_scores_dir=None,
                              delta=0.7,
@@ -314,6 +315,9 @@ def get_answerability_scores(hypotheses,
     else:
         relevant_words = None
         question_words = None
+
+    if output_dir is None:
+        output_dir = tempfile.gettempdir()
     filenames_1 = _get_json_format_qbleu(references, os.path.join(output_dir, 'refs'),
                                          relevant_words, question_words)
     _logger.debug("Reference files written.")
@@ -324,7 +328,9 @@ def get_answerability_scores(hypotheses,
     final_eval_f = []
     for file_1, file_2 in zip(filenames_1, filenames_2):
         coco = loadJsonToMap(file_1)
+        os.remove(file_1)
         cocoRes = loadJsonToMap(file_2)
+        os.remove(file_2)
         cocoEval_precision = COCOEvalCap(coco, cocoRes)
         cocoEval_recall = COCOEvalCap(cocoRes, coco)
         cocoEval_precision.params['image_id'] = cocoRes.keys()
@@ -373,8 +379,8 @@ def main():
     parser.add_argument('--delta', dest='delta', type=float,
                         default=0.7,
                         help="Weight to be given to answerability scores")
-    parser.add_argument('--output_dir', dest='output_dir', type=str,
-                        help="Path to directory to store the scores per line, and auxilariy files")
+    parser.add_argument('--output_dir', dest='output_dir', type=str, default=tempfile.gettempdir(),
+                        help="Path to directory to store the scores per line, and auxiliary files")
     parser.add_argument('--ngram_metric', dest='ngram_metric', type=str,
                         help="N-gram metric that needs to be considered")
     parser.add_argument('--nist_meteor_scores_dir', dest="nist_meteor_scores_dir", type=str,
