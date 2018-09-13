@@ -24,3 +24,10 @@ python answerability_score.py --data_type squad --ref_file examples/references.t
 * ngram_metric varies from [Bleu_1, Bleu_2, Bleu_3, Bleu_4, ROUGE_L, NIST, METEOR]
 
 Note that the weights given to the stop_words is computed as (1 - ner_weight - qt_weight - re_weight) and the weight for the ngram metric is computed using (1 - delta)
+
+## Testing
+Run:
+```bash
+pip install -e '.[dev]'
+pytest
+```
