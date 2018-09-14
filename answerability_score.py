@@ -190,7 +190,7 @@ class COCOEvalCap:
         self.cocoRes = cocoRes
         self.params = {'image_id': coco.keys()}
 
-    def evaluate(self):
+    def evaluate(self, ngram_metric):
         imgIds = self.params['image_id']
         # imgIds = self.coco.getImgIds()
         gts = {}
@@ -209,10 +209,20 @@ class COCOEvalCap:
         # =================================================
         # Set up scorers
         # =================================================
-        scorers = [
-            (Bleu(4), ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]),
-            (Rouge(), "ROUGE_L")
-        ]
+        if ngram_metric == 'ROUGE_L':
+            scorers = [
+                (Bleu(1), ["Bleu_1"]),
+                (Rouge(), "ROUGE_L")
+            ]
+        else:
+            assert ngram_metric.startswith('Bleu_')
+            i = ngram_metric[len('Bleu_'):]
+            assert i.isdigit()
+            i = int(i)
+            assert i > 0
+            scorers = [
+                (Bleu(i), ['Bleu_{}'.format(j) for j in range(1, i + 1)]),
+            ]
 
         # =================================================
         # Compute scores
@@ -335,8 +345,8 @@ def get_answerability_scores(hypotheses,
         cocoEval_recall = COCOEvalCap(cocoRes, coco)
         cocoEval_precision.params['image_id'] = cocoRes.keys()
         cocoEval_recall.params['image_id'] = cocoRes.keys()
-        eval_per_line_p = cocoEval_precision.evaluate()
-        eval_per_line_r = cocoEval_recall.evaluate()
+        eval_per_line_p = cocoEval_precision.evaluate(ngram_metric)
+        eval_per_line_r = cocoEval_recall.evaluate(ngram_metric)
 
         f_score = zip(eval_per_line_p, eval_per_line_r)
         temp_f = []
