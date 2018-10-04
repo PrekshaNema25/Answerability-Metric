@@ -5,8 +5,9 @@ Towards a Better Metric for Evaluating Question Generation Systems - Preksha Nem
 ## Implementation
 The script is a modified version of [coco-caption](https://github.com/tylin/coco-caption).
 
-## Requirement
-* numpy
+## Requirements
+* `python setup.py install`
+* Java
 * pickle
 * [NIST](https://github.com/moses-smt/mosesdecoder/blob/master/scripts/generic/mteval-v13a.pl) (Optional)
 * [METEOR](http://www.cs.cmu.edu/~alavie/METEOR/) (Optional)
@@ -16,8 +17,17 @@ The script is a modified version of [coco-caption](https://github.com/tylin/coco
 * NIST, METEOR scores should be precomputed using the given script, and should contain score for (ref_ques, hyp_ques) per line, corresponding to the ref_file, hyp_file.
 
 ## How to run the script
-* mkdir auxilary_output
-* python answerability_score.py --data_type squad --ref_file references --hyp_file hypothesis --ner_weight 0.6 --qt_weight 0.2 --re_weight 0.1 --delta 0.7 --output_dir auxilary_output --ngram_metric Bleu_3
-* ngram_metric varies from [Bleu_1, Bleu_2, Bleu_3, Bleu_4, Rouge_L, nist, meteor]
+Run:
+```bash
+python answerability_score.py --data_type squad --ref_file examples/references.txt --hyp_file examples/hypotheses.txt --ner_weight 0.6 --qt_weight 0.2 --re_weight 0.1 --delta 0.7 --ngram_metric Bleu_3
+```
+* ngram_metric varies from [Bleu_1, Bleu_2, Bleu_3, Bleu_4, ROUGE_L, NIST, METEOR]
 
 Note that the weights given to the stop_words is computed as (1 - ner_weight - qt_weight - re_weight) and the weight for the ngram metric is computed using (1 - delta)
+
+## Testing
+Run:
+```bash
+pip install -e '.[dev]'
+pytest
+```

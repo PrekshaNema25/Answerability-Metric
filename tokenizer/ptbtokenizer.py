@@ -8,11 +8,10 @@
 # Last Modified : Thu Mar 19 09:53:35 2015
 # Authors : Hao Fang <hfang@uw.edu> and Tsung-Yi Lin <tl483@cornell.edu>
 
+import logging
 import os
-import sys
 import subprocess
 import tempfile
-import itertools
 
 # path to the stanford corenlp jar
 STANFORD_CORENLP_3_4_1_JAR = 'stanford-corenlp-3.4.1.jar'
@@ -21,39 +20,40 @@ STANFORD_CORENLP_3_4_1_JAR = 'stanford-corenlp-3.4.1.jar'
 PUNCTUATIONS = ["''", "'", "``", "`", "-LRB-", "-RRB-", "-LCB-", "-RCB-", \
         ".", "?", "!", ",", ":", "-", "--", "...", ";"] 
 
+_logger = logging.getLogger('answerability')
+
+
 class PTBTokenizer:
     """Python wrapper of Stanford PTBTokenizer"""
 
-    def tokenize(self, captions_for_image):
-        cmd = ['java', '-cp', STANFORD_CORENLP_3_4_1_JAR, \
-                'edu.stanford.nlp.process.PTBTokenizer', \
-                '-preserveLines', '-lowerCase']
+    def __init__(self):
+        self._cmd = ['java', '-cp', STANFORD_CORENLP_3_4_1_JAR,
+                     'edu.stanford.nlp.process.PTBTokenizer',
+                     '-preserveLines', '-lowerCase']
+        self._path_to_jar_dirname = os.path.dirname(os.path.abspath(__file__))
 
+    def tokenize(self, captions_for_image):
         # ======================================================
         # prepare data for PTB Tokenizer
         # ======================================================
         final_tokenized_captions_for_image = {}
         image_id = [k for k, v in captions_for_image.items() for _ in range(len(v))]
-        sentences = '\n'.join([c['caption'].replace('\n', ' ') for k, v in captions_for_image.items() for c in v])
 
-        # ======================================================
-        # save sentences to temporary file
-        # ======================================================
-        path_to_jar_dirname=os.path.dirname(os.path.abspath(__file__))
-        tmp_file = tempfile.NamedTemporaryFile(delete=False, dir=path_to_jar_dirname)
-        tmp_file.write(sentences)
-        tmp_file.close()
+        sentences = '\n'.join([c['caption'].replace('\n', ' ') for v in captions_for_image.values() for c in v])
 
         # ======================================================
         # tokenize sentence
         # ======================================================
-        cmd.append(os.path.basename(tmp_file.name))
-        p_tokenizer = subprocess.Popen(cmd, cwd=path_to_jar_dirname, \
-                stdout=subprocess.PIPE)
-        token_lines = p_tokenizer.communicate(input=sentences.rstrip())[0]
-        lines = token_lines.split('\n')
-        # remove temp file
-        os.remove(tmp_file.name)
+        env = os.environ.copy()
+        env['LC_ALL'] = "C"
+        p_tokenizer = subprocess.Popen(self._cmd, cwd=self._path_to_jar_dirname,
+                                       env=env,
+                                       stdin=subprocess.PIPE,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        token_lines, err = p_tokenizer.communicate(sentences.encode('utf-8'))
+        if err and _logger.isEnabledFor(logging.DEBUG):
+            _logger.debug(err.decode('utf-8').rstrip())
+        lines = token_lines.decode('utf-8').split('\n')
 
         # ======================================================
         # create dictionary for tokenized captions
