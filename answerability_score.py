@@ -357,7 +357,7 @@ def get_answerability_scores(hypotheses,
                 temp_f.append(1)
                 continue
             elif (p['Bleu_1'] + r['Bleu_1'] == 0):
-                temp_f.append(1)
+                temp_f.append(0)
                 continue
             temp_f.append(2 * (p['Bleu_1'] * r['Bleu_1']) / (p['Bleu_1'] + r['Bleu_1']))
 
