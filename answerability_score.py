@@ -173,12 +173,14 @@ def loadJsonToMap(json_file):
     with codecs.open(json_file, "r", encoding="utf-8", errors="ignore") as f:
         data = json.load(f)
     img_to_anns = {}
+    length_of_sents = []
     for entry in data:
         if entry['image_id'] not in img_to_anns:
             img_to_anns[entry['image_id']] = []
         summary = dict(caption=entry['caption'], image_id=entry['caption'])
         img_to_anns[entry['image_id']].append(summary)
-    return img_to_anns
+        length_of_sents.append(len(entry['caption']))
+    return img_to_anns, length_of_sents
 
 
 class COCOEvalCap:
@@ -337,9 +339,9 @@ def get_answerability_scores(hypotheses,
     final_eval = []
     final_eval_f = []
     for file_1, file_2 in zip(filenames_1, filenames_2):
-        coco = loadJsonToMap(file_1)
+        coco, len_sents = loadJsonToMap(file_1)
         os.remove(file_1)
-        cocoRes = loadJsonToMap(file_2)
+        cocoRes, len_sents2 = loadJsonToMap(file_2)
         os.remove(file_2)
         cocoEval_precision = COCOEvalCap(coco, cocoRes)
         cocoEval_recall = COCOEvalCap(cocoRes, coco)
@@ -348,11 +350,14 @@ def get_answerability_scores(hypotheses,
         eval_per_line_p = cocoEval_precision.evaluate(ngram_metric)
         eval_per_line_r = cocoEval_recall.evaluate(ngram_metric)
 
-        f_score = zip(eval_per_line_p, eval_per_line_r)
+        f_score = zip(eval_per_line_p, eval_per_line_r, len_sents, len_sents2)
         temp_f = []
-        for p, r in f_score:
-            if (p['Bleu_1'] + r['Bleu_1'] == 0):
-                temp_f.append(0)
+        for p, r, l1, l2 in f_score:
+            if l1 == 0 and l2 == 0:
+                temp_f.append(1)
+                continue
+            elif (p['Bleu_1'] + r['Bleu_1'] == 0):
+                temp_f.append(1)
                 continue
             temp_f.append(2 * (p['Bleu_1'] * r['Bleu_1']) / (p['Bleu_1'] + r['Bleu_1']))
 
